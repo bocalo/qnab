@@ -1,15 +1,26 @@
 class AnswersController < ApplicationController
-  expose :question, ->{ Question.find(params[:question_id]) }
-  
-  def new
-  end
+  before_action :authenticate_user!, except: %i[new]
 
+  expose :question, ->{ Question.find(params[:question_id]) }
+  expose :answer
+  
   def create
     @answer = question.answers.new(answer_params)
+    @answer.user = current_user
+    
     if @answer.save
-      redirect_to question
+      redirect_to question, notice: 'Your answer was successfully created.'
     else
-      render :new
+      render 'questions/show'
+    end
+  end
+
+  def destroy
+    if current_user&.author?(answer)
+      answer.destroy
+      redirect_to question_path(answer.question), notice: 'Answer was successfully deleted.'
+    else
+      redirect_to question_path(answer.question), notice: 'You have no rights to delete the answer.'
     end
   end
 
