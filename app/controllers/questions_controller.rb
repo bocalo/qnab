@@ -1,21 +1,21 @@
 class QuestionsController < ApplicationController
+  before_action :authenticate_user!, except: %i[index show]
+  
+  expose :questions, ->{ Question.all }
+  expose :question
+
   def index
     @questions = Question.all
   end
 
   def show
-  end
-
-  def new
-  end
-
-  def edit
+    @answer = question.answers.new
   end
 
   def create
-    @question = Question.new(question_params)
+    @question = current_user.questions.new(question_params)
     if @question.save
-      redirect_to @question
+      redirect_to @question, notice: 'Your question successfully created.'
     else
       render :new
     end
@@ -23,15 +23,20 @@ class QuestionsController < ApplicationController
 
   def update
     if question.update(question_params)
-      redirect_to @question
+      redirect_to question
     else
       render :edit
     end
   end
 
   def destroy
-    question.destroy
-    redirect_to questions_path
+    if current_user.author?(question)
+      question.destroy
+      redirect_to questions_path, notice: 'Question successfully deleted.'
+    else
+      redirect_to questions_path, notice: 'You have no rights to delete this question.'
+    end
+    
   end
 
   private
